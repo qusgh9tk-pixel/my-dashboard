@@ -717,9 +717,11 @@ async function drawVKOSPI() {
   const ov = document.getElementById('vkospi-ov');
   const srcEl = document.getElementById('vkospi-src');
   ov.style.display = 'flex'; ov.textContent = '불러오는 중...';
+  const YF_URL = 'https://query2.finance.yahoo.com/v8/finance/chart/%5EVKOSPI?interval=1d&range=3mo';
   const endpoints = [
-    'https://query2.finance.yahoo.com/v8/finance/chart/%5EVKOSPI?interval=1d&range=3mo',
-    'https://query1.finance.yahoo.com/v8/finance/chart/%5EVKOSPI?interval=1d&range=3mo',
+    'https://corsproxy.io/?' + YF_URL,
+    'https://api.allorigins.win/raw?url=' + encodeURIComponent(YF_URL),
+    YF_URL,
   ];
   for (const url of endpoints) {
     try {
