@@ -642,6 +642,7 @@ function goPage(id) {
   if (id === 'fx') { loadFxSpot(); loadFxHist(); }
   if (id === 'index') { setTimeout(() => { drawIdx('SP500', 4900); drawFear(); drawSectors(); drawVIX(); drawVKOSPI(); }, 50); }
   if (id === 'macro') { setTimeout(() => { drawYield(); drawComm(); }, 50); }
+  if (id === 'signal') { if (FRED_KEY) loadFredAll(); }
   if (id === 'stock') { if (AV_KEY) loadStock(); }
   if (id === 'port') { renderPort(); }
 }
