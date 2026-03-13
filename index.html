@@ -88,7 +88,7 @@ nav {
 .page.active { display: flex; }
 
 /* METRIC STRIP */
-.metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.metrics { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
 .metric {
   background: var(--bg2); border: 1px solid var(--border);
   border-radius: 12px; padding: 16px 18px;
@@ -282,11 +282,21 @@ nav {
 
 .sig-chart-grid { display: grid; grid-template-columns: 300px 1fr; gap: 16px; }
 .sig-spinner { display: none; width: 18px; height: 18px; border: 2px solid var(--border2); border-top-color: var(--blue); border-radius: 50%; animation: spin 0.7s linear infinite; }
+.kis-input {
+  font-size: 11px; font-family: var(--mono); padding: 5px 10px;
+  border: 1px solid var(--border2); border-radius: 6px;
+  background: var(--bg3); color: var(--text); width: 170px;
+  outline: none; transition: border-color 0.2s;
+}
+.kis-input:focus { border-color: var(--blue); }
+.kis-input::placeholder { color: var(--text3); }
+.kis-key-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 @keyframes spin { to { transform: rotate(360deg); } }
+@media (max-width: 1300px) { .metrics { grid-template-columns: repeat(4,1fr); } }
 @media (max-width: 1200px) { .ind-grid4 { grid-template-columns: repeat(4,1fr); } }
 @media (max-width: 1100px) { .sig-grid { grid-template-columns: repeat(2,1fr); } }
-@media (max-width: 900px) { .sig-grid, .sig-chart-grid { grid-template-columns: 1fr; } .ind-grid4 { grid-template-columns: repeat(3,1fr); } }
-@media (max-width: 600px) { .ind-grid4 { grid-template-columns: repeat(2,1fr); } }
+@media (max-width: 900px) { .sig-grid, .sig-chart-grid { grid-template-columns: 1fr; } .ind-grid4 { grid-template-columns: repeat(3,1fr); } .metrics { grid-template-columns: repeat(3,1fr); } }
+@media (max-width: 600px) { .ind-grid4 { grid-template-columns: repeat(2,1fr); } .metrics { grid-template-columns: repeat(2,1fr); } }
 </style>
 </head>
 <body>
@@ -365,10 +375,24 @@ nav {
 
       <!-- INDEX PAGE -->
       <div id="p-index" class="page">
+        <!-- KIS API 키 설정 -->
+        <div class="card">
+          <div class="card-header" style="flex-wrap:wrap;gap:8px">
+            <span class="card-title">🇰🇷 한국투자증권 Open API</span>
+            <div class="kis-key-row">
+              <input id="kis-appkey" class="kis-input" type="password" placeholder="APP KEY" autocomplete="off">
+              <input id="kis-appsecret" class="kis-input" type="password" placeholder="APP SECRET" autocomplete="off">
+              <button class="btn-save" onclick="saveKIS()">저장</button>
+              <span class="key-badge badge-no" id="kis-badge">키 없음</span>
+              <span id="kis-status" style="font-size:11px;color:var(--text2);font-family:var(--mono)"></span>
+            </div>
+          </div>
+        </div>
         <div class="metrics" id="idx-metrics">
           <div class="metric"><div class="metric-label">S&amp;P 500</div><div class="metric-value">5,149</div><div class="metric-sub up">+26.5 (+0.52%)</div></div>
           <div class="metric"><div class="metric-label">NASDAQ</div><div class="metric-value">16,091</div><div class="metric-sub up">+183 (+1.15%)</div></div>
-          <div class="metric"><div class="metric-label">KOSPI</div><div class="metric-value">2,642</div><div class="metric-sub up">+18.4 (+0.70%)</div></div>
+          <div class="metric"><div class="metric-label">KOSPI</div><div class="metric-value" id="kospi-price">2,642</div><div class="metric-sub up" id="kospi-chg">+18.4 (+0.70%)</div></div>
+          <div class="metric"><div class="metric-label">KOSDAQ</div><div class="metric-value" id="kosdaq-price">—</div><div class="metric-sub" id="kosdaq-chg" style="color:var(--text3);font-size:10px">KIS 키 필요</div></div>
           <div class="metric"><div class="metric-label">닛케이 225</div><div class="metric-value">38,946</div><div class="metric-sub up">+744 (+1.95%)</div></div>
         </div>
         <div class="card">
@@ -604,6 +628,8 @@ nav {
 <script>
 // ── STATE ─────────────────────────────────────────────
 let AV_KEY = localStorage.getItem('av_key') || '';
+let KIS_APPKEY = localStorage.getItem('kis_appkey') || '';
+let KIS_APPSECRET = localStorage.getItem('kis_appsecret') || '';
 let fxFrom = 'USD', fxTo = 'KRW';
 let stockSym = 'AAPL';
 let port = JSON.parse(localStorage.getItem('portfolio') || '[]');
@@ -615,6 +641,12 @@ if (AV_KEY) {
   document.getElementById('av-key').value = AV_KEY;
   document.getElementById('key-badge').textContent = '키 저장됨';
   document.getElementById('key-badge').className = 'key-badge badge-ok';
+}
+if (KIS_APPKEY) {
+  document.getElementById('kis-appkey').value = KIS_APPKEY;
+  document.getElementById('kis-appsecret').value = KIS_APPSECRET;
+  document.getElementById('kis-badge').textContent = '키 저장됨';
+  document.getElementById('kis-badge').className = 'key-badge badge-ok';
 }
 
 function clkTick() {
@@ -632,6 +664,21 @@ function saveKey() {
   else { b.textContent = '키 없음'; b.className = 'key-badge badge-no'; }
 }
 
+function saveKIS() {
+  KIS_APPKEY = document.getElementById('kis-appkey').value.trim();
+  KIS_APPSECRET = document.getElementById('kis-appsecret').value.trim();
+  localStorage.setItem('kis_appkey', KIS_APPKEY);
+  localStorage.setItem('kis_appsecret', KIS_APPSECRET);
+  localStorage.removeItem('kis_token'); // 키 변경 시 캐시 초기화
+  const b = document.getElementById('kis-badge');
+  if (KIS_APPKEY && KIS_APPSECRET) {
+    b.textContent = '키 저장됨'; b.className = 'key-badge badge-ok';
+    loadKISIndex();
+  } else {
+    b.textContent = '키 없음'; b.className = 'key-badge badge-no';
+  }
+}
+
 // ── NAVIGATION ────────────────────────────────────────
 function goPage(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -639,7 +686,7 @@ function goPage(id) {
   document.getElementById('p-' + id).classList.add('active');
   document.querySelectorAll('.nav-item')[['fx','index','macro','signal','stock','port'].indexOf(id)].classList.add('active');
   if (id === 'fx') { loadFxSpot(); loadFxHist(); }
-  if (id === 'index') { setTimeout(() => { drawIdx('SP500', 4900); drawFear(); drawSectors(); drawVIX(); drawVKOSPI(); }, 50); }
+  if (id === 'index') { setTimeout(() => { drawIdx('SP500', 4900); drawFear(); drawSectors(); drawVIX(); if (KIS_APPKEY && KIS_APPSECRET) loadKISIndex(); else drawVKOSPI(); }, 50); }
   if (id === 'macro') { setTimeout(() => { drawYield(); drawComm(); }, 50); }
   if (id === 'signal') { if (AV_KEY) loadFredAll(); }
   if (id === 'stock') { if (AV_KEY) loadStock(); }
@@ -1141,6 +1188,113 @@ function drawLineChart(id, labels, vals, label, color) {
       }
     }
   });
+}
+
+// ── KIS (한국투자증권 Open API) ───────────────────────
+async function getKISToken() {
+  // 캐시된 토큰 확인 (23시간 유효)
+  try {
+    const cached = JSON.parse(localStorage.getItem('kis_token') || 'null');
+    if (cached && Date.now() < cached.exp) return cached.token;
+  } catch(e) {}
+
+  const r = await fetch('https://openapi.koreainvestment.com:9443/oauth2/tokenP', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json; charset=utf-8' },
+    body: JSON.stringify({ grant_type: 'client_credentials', appkey: KIS_APPKEY, appsecret: KIS_APPSECRET })
+  });
+  if (!r.ok) throw new Error(`토큰 발급 실패 (HTTP ${r.status})`);
+  const d = await r.json();
+  if (!d.access_token) throw new Error(d.msg1 || '토큰 응답 오류');
+
+  const exp = Date.now() + 23 * 3600 * 1000;
+  localStorage.setItem('kis_token', JSON.stringify({ token: d.access_token, exp }));
+  return d.access_token;
+}
+
+async function kisGetIndex(token, iscd) {
+  const url = `https://openapi.koreainvestment.com:9443/uapi/domestic-stock/v1/quotations/inquire-index-price` +
+              `?FID_COND_MRKT_DIV_CODE=U&FID_INPUT_ISCD=${iscd}`;
+  const r = await fetch(url, {
+    headers: {
+      'content-type': 'application/json; charset=utf-8',
+      'authorization': `Bearer ${token}`,
+      'appkey': KIS_APPKEY,
+      'appsecret': KIS_APPSECRET,
+      'tr_id': 'FHPST01020000',
+      'custtype': 'P'
+    }
+  });
+  if (!r.ok) throw new Error(`KIS 조회 실패 (HTTP ${r.status})`);
+  const d = await r.json();
+  if (d.rt_cd !== '0') throw new Error(d.msg1 || `KIS 응답 오류 (rt_cd:${d.rt_cd})`);
+  return d.output;
+}
+
+async function loadKISIndex() {
+  const statusEl = document.getElementById('kis-status');
+  if (statusEl) statusEl.textContent = '불러오는 중...';
+
+  try {
+    const token = await getKISToken();
+
+    // ── KOSPI (0001)
+    try {
+      const o = await kisGetIndex(token, '0001');
+      const price = parseFloat(o.bstp_nmix_prpr);
+      const chg   = parseFloat(o.bstp_nmix_prdy_vrss);
+      const pct   = parseFloat(o.bstp_nmix_prdy_ctrt);
+      const sign  = o.prdy_vrss_sign; // '2'=상승 '5'=하락 '3'=보합
+      document.getElementById('kospi-price').textContent =
+        price.toLocaleString('ko-KR', { maximumFractionDigits: 2 });
+      const el = document.getElementById('kospi-chg');
+      el.textContent = `${chg >= 0 ? '+' : ''}${chg.toFixed(2)} (${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%)`;
+      el.className = 'metric-sub ' + (sign === '2' ? 'up' : sign === '5' ? 'dn' : '');
+    } catch(e) { console.warn('[KIS] KOSPI:', e.message); }
+
+    // ── KOSDAQ (1001)
+    try {
+      const o = await kisGetIndex(token, '1001');
+      const price = parseFloat(o.bstp_nmix_prpr);
+      const chg   = parseFloat(o.bstp_nmix_prdy_vrss);
+      const pct   = parseFloat(o.bstp_nmix_prdy_ctrt);
+      const sign  = o.prdy_vrss_sign;
+      document.getElementById('kosdaq-price').textContent =
+        price.toLocaleString('ko-KR', { maximumFractionDigits: 2 });
+      const el = document.getElementById('kosdaq-chg');
+      el.textContent = `${chg >= 0 ? '+' : ''}${chg.toFixed(2)} (${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%)`;
+      el.className = 'metric-sub ' + (sign === '2' ? 'up' : sign === '5' ? 'dn' : '');
+    } catch(e) { console.warn('[KIS] KOSDAQ:', e.message); }
+
+    // ── VKOSPI — 코드 순서대로 시도
+    let vkospiDone = false;
+    for (const iscd of ['0035', '0219', '0034', '0217']) {
+      try {
+        const o = await kisGetIndex(token, iscd);
+        const price = parseFloat(o.bstp_nmix_prpr);
+        if (price > 0) {
+          // 시뮬레이션 history에 실제 현재값을 끝에 반영
+          const { labels, vals } = genVol(price, 60);
+          vals[vals.length - 1] = +price.toFixed(2);
+          drawVolLineChart('vkospi-ch', labels, vals, 'VKOSPI', '#9b7cff');
+          document.getElementById('vkospi-ov').style.display = 'none';
+          document.getElementById('vkospi-src').innerHTML =
+            '출처: <a href="https://openapi.koreainvestment.com" target="_blank">KIS Open API</a> · 실시간 현재가';
+          vkospiDone = true;
+          break;
+        }
+      } catch(e) { console.warn('[KIS] VKOSPI', iscd, ':', e.message); }
+    }
+    if (!vkospiDone) drawVKOSPI(); // KIS VKOSPI 실패 시 Stooq/시뮬레이션으로 폴백
+
+    if (statusEl) statusEl.textContent =
+      `업데이트: ${new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}`;
+
+  } catch(e) {
+    console.warn('[KIS]', e.message);
+    if (statusEl) { statusEl.textContent = `⚠️ ${e.message}`; statusEl.style.color = 'var(--red)'; }
+    drawVKOSPI(); // 전체 실패 시 폴백
+  }
 }
 
 // ── SIGNAL ────────────────────────────────────────────
