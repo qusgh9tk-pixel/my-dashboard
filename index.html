@@ -367,7 +367,7 @@ nav {
               <div class="ch-overlay loading-text" id="vkospi-ov">불러오는 중...</div>
               <canvas id="vkospi-ch"></canvas>
             </div>
-            <div class="card-src">출처: <a href="https://www.krx.co.kr" target="_blank">한국거래소 (KRX)</a> 기반 시뮬레이션</div>
+            <div class="card-src" id="vkospi-src">출처: 불러오는 중...</div>
           </div>
         </div>
       </div>
@@ -713,11 +713,30 @@ async function drawVIX() {
   document.getElementById('vix-src').innerHTML = '출처: 시뮬레이션 데이터 (API 키 필요)';
 }
 
-function drawVKOSPI() {
+async function drawVKOSPI() {
   const ov = document.getElementById('vkospi-ov');
-  const { labels, vals } = genVol(18);
-  drawVolLineChart('vkospi-ch', labels, vals, 'VKOSPI', '#9b7cff');
-  ov.style.display = 'none';
+  const srcEl = document.getElementById('vkospi-src');
+  ov.style.display = 'flex'; ov.textContent = '불러오는 중...';
+  try {
+    const r = await fetch('https://query1.finance.yahoo.com/v8/finance/chart/%5EVKOSPI?interval=1d&range=3mo');
+    const d = await r.json();
+    const result = d.chart.result[0];
+    const timestamps = result.timestamp;
+    const closes = result.indicators.quote[0].close;
+    const labels = timestamps.map(t => {
+      const dt = new Date(t * 1000);
+      return `${String(dt.getMonth()+1).padStart(2,'0')}/${String(dt.getDate()).padStart(2,'0')}`;
+    });
+    const filtered = labels.map((l, i) => ({ l, v: closes[i] })).filter(x => x.v != null);
+    drawVolLineChart('vkospi-ch', filtered.map(x => x.l), filtered.map(x => +x.v.toFixed(2)), 'VKOSPI', '#9b7cff');
+    ov.style.display = 'none';
+    if (srcEl) srcEl.innerHTML = '출처: <a href="https://kr.investing.com/indices/kospi-volatility" target="_blank">VKOSPI</a> via <a href="https://finance.yahoo.com/quote/%5EVKOSPI" target="_blank">Yahoo Finance</a> · 실제 데이터';
+  } catch (e) {
+    const { labels, vals } = genVol(18);
+    drawVolLineChart('vkospi-ch', labels, vals, 'VKOSPI', '#9b7cff');
+    ov.style.display = 'none';
+    if (srcEl) srcEl.innerHTML = '출처: 시뮬레이션 데이터 (API 연결 실패)';
+  }
 }
 
 function drawVolLineChart(id, labels, vals, label, color) {
