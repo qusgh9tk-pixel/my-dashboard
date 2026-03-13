@@ -1230,7 +1230,8 @@ async function fetchFred(id) {
   const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${id}&api_key=${FRED_KEY}&file_type=json&limit=90&sort_order=desc`;
   const r = await fetch(url);
   const d = await r.json();
-  if (!d.observations) throw new Error(id);
+  if (d.error_message) throw new Error(d.error_message);
+  if (!d.observations) throw new Error('no observations: ' + id);
   const obs = d.observations.filter(o => o.value !== '.' && o.value !== '');
   const cur = parseFloat(obs[0]?.value);
   const prev20 = parseFloat(obs[Math.min(19, obs.length-1)]?.value);
@@ -1248,16 +1249,32 @@ async function loadFredAll() {
   localStorage.setItem('fred_key', FRED_KEY);
 
   const spinner = document.getElementById('fred-spinner');
+  const updEl = document.getElementById('fred-updated');
   spinner.style.display = 'inline-block';
+  updEl.textContent = '불러오는 중...';
+  updEl.style.color = '';
   fredData = {};
 
+  let ok = 0, firstErr = '';
   for (const s of FRED_SERIES) {
-    try { fredData[s.id] = await fetchFred(s.id); }
-    catch(e) { fredData[s.id] = null; }
+    try {
+      fredData[s.id] = await fetchFred(s.id);
+      if (fredData[s.id]) ok++;
+    } catch(e) {
+      fredData[s.id] = null;
+      if (!firstErr) firstErr = e.message;
+      console.warn('[FRED]', s.id, e.message);
+    }
   }
 
   spinner.style.display = 'none';
-  document.getElementById('fred-updated').textContent = '업데이트: ' + new Date().toLocaleString('ko-KR');
+  if (ok === 0) {
+    updEl.textContent = `⚠️ 데이터 로드 실패 — ${firstErr || 'API 키를 확인하세요'}`;
+    updEl.style.color = 'var(--red)';
+  } else {
+    updEl.textContent = `업데이트: ${new Date().toLocaleString('ko-KR')}  (${ok}/${FRED_SERIES.length} 지표)`;
+    updEl.style.color = ok < FRED_SERIES.length ? 'var(--amber)' : '';
+  }
   renderSigCards();
   renderFredInds();
   renderSigRadar();
