@@ -1271,6 +1271,8 @@ async function loadFredAll() {
       if (!firstErr) firstErr = e.message;
       console.warn('[FRED]', s.id, e.message);
     }
+    updEl.textContent = `불러오는 중... (${ok + Object.values(fredData).filter(v=>v===null).length}/${FRED_SERIES.length})`;
+    await new Promise(r => setTimeout(r, 300)); // 프록시 속도 제한 방지
   }
 
   spinner.style.display = 'none';
