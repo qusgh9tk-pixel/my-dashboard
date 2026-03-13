@@ -638,7 +638,7 @@ function goPage(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('p-' + id).classList.add('active');
-  document.querySelectorAll('.nav-item')[['fx','index','macro','stock','signal','port'].indexOf(id)].classList.add('active');
+  document.querySelectorAll('.nav-item')[['fx','index','macro','signal','stock','port'].indexOf(id)].classList.add('active');
   if (id === 'fx') { loadFxSpot(); loadFxHist(); }
   if (id === 'index') { setTimeout(() => { drawIdx('SP500', 4900); drawFear(); drawSectors(); drawVIX(); drawVKOSPI(); }, 50); }
   if (id === 'macro') { setTimeout(() => { drawYield(); drawComm(); }, 50); }
