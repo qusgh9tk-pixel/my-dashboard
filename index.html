@@ -208,16 +208,13 @@ nav {
 .gauge-wrap { display: flex; flex-direction: column; align-items: center; }
 .gauge-label { font-size: 11px; color: var(--text2); margin-top: 4px; }
 
-/* DATA SOURCE LABEL */
-.src-label {
-  position: fixed; bottom: 14px; right: 18px;
-  font-size: 10px; color: var(--text2); font-family: var(--mono);
-  text-align: right; line-height: 1.8; z-index: 200;
-  pointer-events: none;
+/* CARD SOURCE */
+.card-src {
+  margin-top: 10px; text-align: right;
+  font-size: 10px; font-family: var(--mono); color: var(--text3);
 }
-.src-label a { color: var(--text2); text-decoration: none; pointer-events: auto; }
-.src-label a:hover { color: var(--text); }
-.src-label .src-title { font-size: 9px; letter-spacing: 0.08em; color: var(--text2); opacity: 0.6; margin-bottom: 2px; }
+.card-src a { color: var(--text3); text-decoration: none; }
+.card-src a:hover { color: var(--text2); text-decoration: underline; }
 
 /* SCROLLBAR */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
@@ -309,6 +306,7 @@ nav {
             <div class="ch-overlay loading-text" id="fx-ov">불러오는 중...</div>
             <canvas id="fx-chart"></canvas>
           </div>
+          <div class="card-src">출처: <a href="https://www.frankfurter.app" target="_blank">Frankfurter API</a> · ECB 기준 환율</div>
         </div>
       </div>
 
@@ -333,6 +331,7 @@ nav {
           <div class="ch" style="height:240px">
             <canvas id="idx-chart"></canvas>
           </div>
+          <div class="card-src">출처: 시뮬레이션 데이터</div>
         </div>
         <div class="grid2">
           <div class="card">
@@ -340,10 +339,12 @@ nav {
             <div class="gauge-wrap">
               <div class="ch" style="height:160px;width:220px"><canvas id="fear-ch"></canvas></div>
             </div>
+            <div class="card-src">출처: <a href="https://edition.cnn.com/markets/fear-and-greed" target="_blank">CNN Fear & Greed</a> 기반 시뮬레이션</div>
           </div>
           <div class="card">
             <div class="card-header"><span class="card-title">S&P500 섹터 등락</span></div>
             <div class="ch" style="height:180px"><canvas id="sector-ch"></canvas></div>
+            <div class="card-src">출처: 시뮬레이션 데이터</div>
           </div>
         </div>
         <div class="grid2">
@@ -356,6 +357,7 @@ nav {
               <div class="ch-overlay loading-text" id="vix-ov">불러오는 중...</div>
               <canvas id="vix-ch"></canvas>
             </div>
+            <div class="card-src" id="vix-src">출처: 시뮬레이션 데이터</div>
           </div>
           <div class="card">
             <div class="card-header">
@@ -365,6 +367,7 @@ nav {
               <div class="ch-overlay loading-text" id="vkospi-ov">불러오는 중...</div>
               <canvas id="vkospi-ch"></canvas>
             </div>
+            <div class="card-src">출처: <a href="https://www.krx.co.kr" target="_blank">한국거래소 (KRX)</a> 기반 시뮬레이션</div>
           </div>
         </div>
       </div>
@@ -379,6 +382,7 @@ nav {
             <div class="rate-row"><span class="rate-name">유럽 (ECB)</span><span class="rate-val">4.50%</span></div>
             <div class="rate-row"><span class="rate-name">일본 (BOJ)</span><span class="rate-val">0.10%</span></div>
             <div class="rate-row"><span class="rate-name">영국 (BOE)</span><span class="rate-val">5.25%</span></div>
+            <div class="card-src">출처: <a href="https://www.federalreserve.gov" target="_blank">Fed</a> · <a href="https://www.bok.or.kr" target="_blank">BOK</a> · <a href="https://www.ecb.europa.eu" target="_blank">ECB</a> 공식 발표</div>
           </div>
           <div class="card">
             <div class="card-header"><span class="card-title">국채 수익률</span></div>
@@ -387,11 +391,13 @@ nav {
             <div class="rate-row"><span class="rate-name">미국 30Y</span><span class="rate-val dn">4.735%</span></div>
             <div class="rate-row"><span class="rate-name">한국 3Y</span><span class="rate-val">3.312%</span></div>
             <div class="rate-row"><span class="rate-name">독일 10Y</span><span class="rate-val">2.381%</span></div>
+            <div class="card-src">출처: <a href="https://fred.stlouisfed.org" target="_blank">FRED</a> · <a href="https://home.treasury.gov" target="_blank">U.S. Treasury</a></div>
           </div>
         </div>
         <div class="card">
           <div class="card-header"><span class="card-title">금리 곡선 (미국 국채 Yield Curve)</span></div>
           <div class="ch" style="height:200px"><canvas id="yield-ch"></canvas></div>
+          <div class="card-src">출처: <a href="https://home.treasury.gov/resource-center/data-chart-center/interest-rates" target="_blank">U.S. Treasury</a></div>
         </div>
         <div class="grid2">
           <div class="card">
@@ -401,10 +407,12 @@ nav {
             <div class="rate-row"><span class="rate-name">WTI 원유</span><span class="rate-val dn">$78.42</span></div>
             <div class="rate-row"><span class="rate-name">브렌트유</span><span class="rate-val dn">$82.15</span></div>
             <div class="rate-row"><span class="rate-name">구리 (lb)</span><span class="rate-val up">$3.92</span></div>
+            <div class="card-src">출처: <a href="https://www.investing.com/commodities" target="_blank">Investing.com</a> 기준 (수동 업데이트)</div>
           </div>
           <div class="card">
             <div class="card-header"><span class="card-title">원자재 가격 비교</span></div>
             <div class="ch" style="height:180px"><canvas id="comm-ch"></canvas></div>
+            <div class="card-src">출처: <a href="https://www.investing.com/commodities" target="_blank">Investing.com</a> 기준 (수동 업데이트)</div>
           </div>
         </div>
       </div>
@@ -432,6 +440,7 @@ nav {
             <div class="ch-overlay" id="stock-ov">API 키를 입력하면 실제 데이터를 불러옵니다</div>
             <canvas id="stock-ch"></canvas>
           </div>
+          <div class="card-src">출처: <a href="https://www.alphavantage.co" target="_blank">Alpha Vantage</a> · 무료 플랜 분당 5회 / 일 100회 제한</div>
         </div>
         <div class="grid2">
           <div class="card">
@@ -495,8 +504,6 @@ nav {
   </main>
 </div>
 
-<div class="src-label" id="src-label"></div>
-
 <script>
 // ── STATE ─────────────────────────────────────────────
 let AV_KEY = localStorage.getItem('av_key') || '';
@@ -528,26 +535,12 @@ function saveKey() {
   else { b.textContent = '키 없음'; b.className = 'key-badge badge-no'; }
 }
 
-// ── DATA SOURCES ──────────────────────────────────────
-const SOURCES = {
-  fx: `<div class="src-title">DATA SOURCE</div>환율 현재가 · 30일 추이: <a href="https://frankfurter.app" target="_blank">Frankfurter API</a> (frankfurter.app)<br>무료 공개 API · ECB 기준 환율`,
-  index: `<div class="src-title">DATA SOURCE</div>지수 차트 · 섹터 등락 · 공포탐욕: 시뮬레이션 데이터<br>VIX 실데이터: <a href="https://alphavantage.co" target="_blank">Alpha Vantage</a> (API 키 필요)`,
-  macro: `<div class="src-title">DATA SOURCE</div>기준금리: Fed · BOK · ECB · BOJ · BOE 공식 발표 기준<br>국채 수익률 · 원자재: 하드코딩 (수동 업데이트 필요)`,
-  stock: `<div class="src-title">DATA SOURCE</div>종목 일별 차트 · 거래량: <a href="https://alphavantage.co" target="_blank">Alpha Vantage</a> (alphavantage.co)<br>무료 플랜: 분당 5회 · 일 100회 호출 제한`,
-  port: `<div class="src-title">DATA SOURCE</div>현재가 업데이트: <a href="https://alphavantage.co" target="_blank">Alpha Vantage</a> (API 키 필요)<br>보유 종목 · 평균단가: 사용자 입력 (localStorage 저장)`
-};
-
-function updateSrc(id) {
-  document.getElementById('src-label').innerHTML = SOURCES[id] || '';
-}
-
 // ── NAVIGATION ────────────────────────────────────────
 function goPage(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('p-' + id).classList.add('active');
   document.querySelectorAll('.nav-item')[['fx','index','macro','stock','port'].indexOf(id)].classList.add('active');
-  updateSrc(id);
   if (id === 'fx') { loadFxSpot(); loadFxHist(); }
   if (id === 'index') { setTimeout(() => { drawIdx('SP500', 4900); drawFear(); drawSectors(); drawVIX(); drawVKOSPI(); }, 50); }
   if (id === 'macro') { setTimeout(() => { drawYield(); drawComm(); }, 50); }
@@ -709,6 +702,7 @@ async function drawVIX() {
         const labels = dates.map(d => d.slice(5));
         drawVolLineChart('vix-ch', labels, closes, 'VIX', '#f0a500');
         ov.style.display = 'none';
+        document.getElementById('vix-src').innerHTML = '출처: <a href="https://www.alphavantage.co" target="_blank">Alpha Vantage</a> · 실제 데이터';
         return;
       }
     } catch (e) {}
@@ -716,6 +710,7 @@ async function drawVIX() {
   const { labels, vals } = genVol(16);
   drawVolLineChart('vix-ch', labels, vals, 'VIX', '#f0a500');
   ov.style.display = 'none';
+  document.getElementById('vix-src').innerHTML = '출처: 시뮬레이션 데이터 (API 키 필요)';
 }
 
 function drawVKOSPI() {
@@ -1024,7 +1019,6 @@ function drawLineChart(id, labels, vals, label, color) {
 }
 
 // ── STARTUP ───────────────────────────────────────────
-updateSrc('fx');
 loadFxSpot();
 loadFxHist();
 </script>
