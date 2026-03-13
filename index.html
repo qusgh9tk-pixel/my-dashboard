@@ -380,6 +380,10 @@ nav {
           <div class="card-header" style="flex-wrap:wrap;gap:8px">
             <span class="card-title">🇰🇷 한국투자증권 Open API</span>
             <div class="kis-key-row">
+              <select id="kis-env" style="font-size:11px;padding:5px 8px;border:1px solid var(--border2);border-radius:6px;background:var(--bg3);color:var(--text);outline:none;cursor:pointer">
+                <option value="real">실전투자</option>
+                <option value="vts">모의투자</option>
+              </select>
               <input id="kis-appkey" class="kis-input" type="password" placeholder="APP KEY" autocomplete="off">
               <input id="kis-appsecret" class="kis-input" type="password" placeholder="APP SECRET" autocomplete="off">
               <button class="btn-save" onclick="saveKIS()">저장</button>
@@ -630,6 +634,7 @@ nav {
 let AV_KEY = localStorage.getItem('av_key') || '';
 let KIS_APPKEY = localStorage.getItem('kis_appkey') || '';
 let KIS_APPSECRET = localStorage.getItem('kis_appsecret') || '';
+let KIS_ENV = localStorage.getItem('kis_env') || 'real'; // 'real' | 'vts'
 let fxFrom = 'USD', fxTo = 'KRW';
 let stockSym = 'AAPL';
 let port = JSON.parse(localStorage.getItem('portfolio') || '[]');
@@ -645,6 +650,7 @@ if (AV_KEY) {
 if (KIS_APPKEY) {
   document.getElementById('kis-appkey').value = KIS_APPKEY;
   document.getElementById('kis-appsecret').value = KIS_APPSECRET;
+  document.getElementById('kis-env').value = KIS_ENV;
   document.getElementById('kis-badge').textContent = '키 저장됨';
   document.getElementById('kis-badge').className = 'key-badge badge-ok';
 }
@@ -667,9 +673,11 @@ function saveKey() {
 function saveKIS() {
   KIS_APPKEY = document.getElementById('kis-appkey').value.trim();
   KIS_APPSECRET = document.getElementById('kis-appsecret').value.trim();
+  KIS_ENV = document.getElementById('kis-env').value;
   localStorage.setItem('kis_appkey', KIS_APPKEY);
   localStorage.setItem('kis_appsecret', KIS_APPSECRET);
-  localStorage.removeItem('kis_token'); // 키 변경 시 캐시 초기화
+  localStorage.setItem('kis_env', KIS_ENV);
+  localStorage.removeItem('kis_token'); // 키/환경 변경 시 캐시 초기화
   const b = document.getElementById('kis-badge');
   if (KIS_APPKEY && KIS_APPSECRET) {
     b.textContent = '키 저장됨'; b.className = 'key-badge badge-ok';
@@ -1191,8 +1199,11 @@ function drawLineChart(id, labels, vals, label, color) {
 }
 
 // ── KIS (한국투자증권 Open API) ───────────────────────
-// 브라우저 CORS / 포트 9443 우회: 로컬 server.py 가 /api/kis/* 를 프록시
-const KIS_PROXY = '/api/kis';
+// 브라우저 CORS / 포트 9443 우회: 로컬 server.py 가 프록시
+// 실전투자 → /api/kis/   모의투자 → /api/kisvts/
+function kisProxy() {
+  return KIS_ENV === 'vts' ? '/api/kisvts' : '/api/kis';
+}
 
 async function getKISToken() {
   // 캐시된 토큰 확인 (23시간 유효)
@@ -1201,7 +1212,7 @@ async function getKISToken() {
     if (cached && Date.now() < cached.exp) return cached.token;
   } catch(e) {}
 
-  const r = await fetch(`${KIS_PROXY}/oauth2/tokenP`, {
+  const r = await fetch(`${kisProxy()}/oauth2/tokenP`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json; charset=utf-8' },
     body: JSON.stringify({ grant_type: 'client_credentials', appkey: KIS_APPKEY, appsecret: KIS_APPSECRET })
@@ -1221,7 +1232,7 @@ async function getKISToken() {
 }
 
 async function kisGetIndex(token, iscd) {
-  const url = `${KIS_PROXY}/uapi/domestic-stock/v1/quotations/inquire-index-price` +
+  const url = `${kisProxy()}/uapi/domestic-stock/v1/quotations/inquire-index-price` +
               `?FID_COND_MRKT_DIV_CODE=U&FID_INPUT_ISCD=${iscd}`;
   const r = await fetch(url, {
     headers: {
