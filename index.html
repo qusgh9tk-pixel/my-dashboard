@@ -1191,6 +1191,9 @@ function drawLineChart(id, labels, vals, label, color) {
 }
 
 // ── KIS (한국투자증권 Open API) ───────────────────────
+// 브라우저 CORS / 포트 9443 우회: 로컬 server.py 가 /api/kis/* 를 프록시
+const KIS_PROXY = '/api/kis';
+
 async function getKISToken() {
   // 캐시된 토큰 확인 (23시간 유효)
   try {
@@ -1198,13 +1201,14 @@ async function getKISToken() {
     if (cached && Date.now() < cached.exp) return cached.token;
   } catch(e) {}
 
-  const r = await fetch('https://openapi.koreainvestment.com:9443/oauth2/tokenP', {
+  const r = await fetch(`${KIS_PROXY}/oauth2/tokenP`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json; charset=utf-8' },
     body: JSON.stringify({ grant_type: 'client_credentials', appkey: KIS_APPKEY, appsecret: KIS_APPSECRET })
   });
   if (!r.ok) throw new Error(`토큰 발급 실패 (HTTP ${r.status})`);
   const d = await r.json();
+  if (d.error) throw new Error(d.error);
   if (!d.access_token) throw new Error(d.msg1 || '토큰 응답 오류');
 
   const exp = Date.now() + 23 * 3600 * 1000;
@@ -1213,7 +1217,7 @@ async function getKISToken() {
 }
 
 async function kisGetIndex(token, iscd) {
-  const url = `https://openapi.koreainvestment.com:9443/uapi/domestic-stock/v1/quotations/inquire-index-price` +
+  const url = `${KIS_PROXY}/uapi/domestic-stock/v1/quotations/inquire-index-price` +
               `?FID_COND_MRKT_DIV_CODE=U&FID_INPUT_ISCD=${iscd}`;
   const r = await fetch(url, {
     headers: {
