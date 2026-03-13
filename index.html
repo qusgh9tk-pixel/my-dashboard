@@ -1228,16 +1228,26 @@ const FRED_INDUSTRIES = [
 
 async function fetchFred(id) {
   const fredUrl = `https://api.stlouisfed.org/fred/series/observations?series_id=${id}&api_key=${FRED_KEY}&file_type=json&limit=90&sort_order=desc`;
-  let r;
+
+  const tryParse = async (url) => {
+    const r = await fetch(url);
+    const d = await r.json();
+    if (d.error_message) throw new Error(d.error_message);
+    if (!d.observations) throw new Error('no obs');
+    return d;
+  };
+
+  // 직접 시도 → 실패 시 두 프록시 동시 경쟁 → 먼저 온 것 사용
+  let d;
   try {
-    r = await fetch(fredUrl);
+    d = await tryParse(fredUrl);
   } catch {
-    // 직접 접근 차단 시 CORS 프록시 경유
-    r = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(fredUrl)}`);
+    d = await Promise.any([
+      tryParse(`https://api.allorigins.win/raw?url=${encodeURIComponent(fredUrl)}`),
+      tryParse(`https://corsproxy.io/?${encodeURIComponent(fredUrl)}`),
+    ]);
   }
-  const d = await r.json();
-  if (d.error_message) throw new Error(d.error_message);
-  if (!d.observations) throw new Error('no observations: ' + id);
+
   const obs = d.observations.filter(o => o.value !== '.' && o.value !== '');
   const cur = parseFloat(obs[0]?.value);
   const prev20 = parseFloat(obs[Math.min(19, obs.length-1)]?.value);
