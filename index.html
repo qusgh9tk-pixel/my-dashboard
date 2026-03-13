@@ -559,11 +559,10 @@ nav {
         <!-- FRED 키 + 불러오기 -->
         <div class="card" style="padding:16px 20px">
           <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
-            <div style="font-size:12px;font-weight:500;color:var(--text2)">🇰🇷 한국 산업별 투자 신호 — FRED API</div>
+            <div style="font-size:12px;font-weight:500;color:var(--text2)">🇰🇷 한국 산업별 투자 신호 <span style="color:var(--text3);font-weight:400">— Frankfurter · Alpha Vantage</span></div>
             <div class="fred-key-row">
               <span class="sig-spinner" id="fred-spinner"></span>
               <span class="fred-updated" id="fred-updated">—</span>
-              <input id="fred-key" type="password" placeholder="FRED API 키" autocomplete="off">
               <button class="btn-load" onclick="loadFredAll()">불러오기</button>
               <button class="btn-excel" onclick="exportSignalExcel()">📥 엑셀</button>
             </div>
@@ -642,7 +641,7 @@ function goPage(id) {
   if (id === 'fx') { loadFxSpot(); loadFxHist(); }
   if (id === 'index') { setTimeout(() => { drawIdx('SP500', 4900); drawFear(); drawSectors(); drawVIX(); drawVKOSPI(); }, 50); }
   if (id === 'macro') { setTimeout(() => { drawYield(); drawComm(); }, 50); }
-  if (id === 'signal') { if (FRED_KEY) loadFredAll(); }
+  if (id === 'signal') { if (AV_KEY) loadFredAll(); }
   if (id === 'stock') { if (AV_KEY) loadStock(); }
   if (id === 'port') { renderPort(); }
 }
@@ -1144,12 +1143,9 @@ function drawLineChart(id, labels, vals, label, color) {
   });
 }
 
-// ── FRED / SIGNAL ─────────────────────────────────────
-let FRED_KEY = localStorage.getItem('fred_key') || '';
+// ── SIGNAL ────────────────────────────────────────────
 let fredData = {};
 let fredTrendSeries = 'DGS10';
-
-if (FRED_KEY) document.getElementById('fred-key').value = FRED_KEY;
 
 const FRED_SERIES = [
   { id:'DEXKOUS',          label:'KRW/USD',       group:'환율',  fmt: v=>`${v.toFixed(2)} ₩`, upGood:false },
@@ -1226,43 +1222,45 @@ const FRED_INDUSTRIES = [
     ]},
 ];
 
-async function fetchFred(id) {
-  const fredUrl = `https://api.stlouisfed.org/fred/series/observations?series_id=${id}&api_key=${FRED_KEY}&file_type=json&limit=90&sort_order=desc`;
-
-  const tryParse = async (url) => {
-    const r = await fetch(url);
-    const d = await r.json();
-    if (d.error_message) throw new Error(d.error_message);
-    if (!d.observations) throw new Error('no obs');
-    return d;
-  };
-
-  // 직접 시도 → 실패 시 두 프록시 동시 경쟁 → 먼저 온 것 사용
-  let d;
-  try {
-    d = await tryParse(fredUrl);
-  } catch {
-    d = await Promise.any([
-      tryParse(`https://api.allorigins.win/raw?url=${encodeURIComponent(fredUrl)}`),
-      tryParse(`https://corsproxy.io/?${encodeURIComponent(fredUrl)}`),
-    ]);
-  }
-
-  const obs = d.observations.filter(o => o.value !== '.' && o.value !== '');
-  const cur = parseFloat(obs[0]?.value);
-  const prev20 = parseFloat(obs[Math.min(19, obs.length-1)]?.value);
+// 환율: Frankfurter API (키 불필요)
+async function fetchFxSeries(from, to) {
+  const end = new Date(), start = new Date();
+  start.setDate(end.getDate() - 90);
+  const fmt = d => d.toISOString().slice(0, 10);
+  const r = await fetch(`https://api.frankfurter.app/${fmt(start)}..${fmt(end)}?from=${from}&to=${to}`);
+  const d = await r.json();
+  const dates = Object.keys(d.rates).sort();
+  const history = dates.map(dt => ({ date: dt, val: d.rates[dt][to] }));
+  const cur = history[history.length - 1].val;
+  const prev20 = history[Math.max(0, history.length - 20)].val;
   return {
-    cur, prev1: parseFloat(obs[1]?.value),
-    chg20: cur - prev20, pct20: ((cur-prev20)/prev20)*100,
-    date: obs[0]?.date,
-    history: obs.slice(0,60).reverse().map(o=>({date:o.date, val:parseFloat(o.value)}))
+    cur, prev1: history[history.length - 2]?.val ?? cur,
+    chg20: cur - prev20, pct20: ((cur - prev20) / prev20) * 100,
+    date: dates[dates.length - 1], history: history.slice(-60)
+  };
+}
+
+// 경제지표: Alpha Vantage API (기존 키 재사용)
+async function fetchAvSeries(func, params = '') {
+  const r = await fetch(`https://www.alphavantage.co/query?function=${func}${params}&apikey=${AV_KEY}`);
+  const d = await r.json();
+  if (d.Information || d.Note) throw new Error('API 한도 초과');
+  const arr = d.data;
+  if (!arr?.length) throw new Error('데이터 없음');
+  const vals = arr.filter(x => x.value !== '.' && !isNaN(parseFloat(x.value)));
+  if (!vals.length) throw new Error('유효값 없음');
+  const cur = parseFloat(vals[0].value);
+  const prev20 = parseFloat(vals[Math.min(19, vals.length - 1)].value);
+  return {
+    cur, prev1: parseFloat(vals[1]?.value ?? vals[0].value),
+    chg20: cur - prev20, pct20: ((cur - prev20) / prev20) * 100,
+    date: vals[0].date,
+    history: vals.slice(0, 60).reverse().map(x => ({ date: x.date, val: parseFloat(x.value) }))
   };
 }
 
 async function loadFredAll() {
-  FRED_KEY = document.getElementById('fred-key').value.trim();
-  if (!FRED_KEY) { alert('FRED API 키를 입력해주세요'); return; }
-  localStorage.setItem('fred_key', FRED_KEY);
+  if (!AV_KEY) { alert('상단에서 Alpha Vantage API 키를 먼저 저장해주세요'); return; }
 
   const spinner = document.getElementById('fred-spinner');
   const updEl = document.getElementById('fred-updated');
@@ -1271,27 +1269,48 @@ async function loadFredAll() {
   updEl.style.color = '';
   fredData = {};
 
-  // 15개 동시 요청 (병렬)
-  const results = await Promise.allSettled(FRED_SERIES.map(s => fetchFred(s.id)));
-  let ok = 0, firstErr = '';
-  results.forEach((res, i) => {
-    const s = FRED_SERIES[i];
-    if (res.status === 'fulfilled' && res.value) {
-      fredData[s.id] = res.value; ok++;
-    } else {
-      fredData[s.id] = null;
-      if (!firstErr) firstErr = res.reason?.message || '';
-      console.warn('[FRED]', s.id, res.reason?.message);
-    }
-  });
+  const safe = async (key, fn) => {
+    try { fredData[key] = await fn(); }
+    catch(e) { fredData[key] = null; console.warn('[SIGNAL]', key, e.message); }
+  };
 
+  await Promise.all([
+    // 환율 4개 — Frankfurter (키 불필요, 빠름)
+    safe('DEXKOUS',        () => fetchFxSeries('USD', 'KRW')),
+    safe('DEXCHUS',        () => fetchFxSeries('USD', 'CNY')),
+    safe('DEXJPUS',        () => fetchFxSeries('USD', 'JPY')),
+    safe('DEXUSEU',        () => fetchFxSeries('EUR', 'USD')),
+    // 금리·원자재·경기 — Alpha Vantage
+    safe('FEDFUNDS',       () => fetchAvSeries('FEDERAL_FUNDS_RATE', '&interval=monthly')),
+    safe('DGS2',           () => fetchAvSeries('TREASURY_YIELD', '&interval=daily&maturity=2year')),
+    safe('DGS10',          () => fetchAvSeries('TREASURY_YIELD', '&interval=daily&maturity=10year')),
+    safe('DCOILWTICO',     () => fetchAvSeries('WTI', '&interval=daily')),
+    safe('DCOILBRENTEU',   () => fetchAvSeries('BRENT', '&interval=daily')),
+    safe('UNRATE',         () => fetchAvSeries('UNEMPLOYMENT')),
+    safe('CPIAUCSL',       () => fetchAvSeries('CPI', '&interval=monthly')),
+  ]);
+
+  // 장단기 스프레드 = DGS10 - DGS2
+  const d10 = fredData['DGS10'], d2 = fredData['DGS2'];
+  fredData['T10Y2Y'] = (d10 && d2) ? {
+    cur: +(d10.cur - d2.cur).toFixed(3),
+    prev1: +(d10.prev1 - d2.prev1).toFixed(3),
+    chg20: +(d10.chg20 - d2.chg20).toFixed(3),
+    pct20: 0, date: d10.date,
+    history: d10.history.map((h, i) => ({ date: h.date, val: +(h.val - (d2.history[i]?.val ?? d2.cur)).toFixed(3) }))
+  } : null;
+
+  // AV 무료에서 미제공 항목
+  ['INDPRO', 'UMCSENT', 'GOLDAMGBD228NLBM'].forEach(k => { fredData[k] = null; });
+
+  const ok = Object.values(fredData).filter(v => v !== null).length;
   spinner.style.display = 'none';
   if (ok === 0) {
-    updEl.textContent = `⚠️ 데이터 로드 실패 — ${firstErr || 'API 키를 확인하세요'}`;
+    updEl.textContent = '⚠️ 데이터 로드 실패 — AV 키를 확인하세요';
     updEl.style.color = 'var(--red)';
   } else {
-    updEl.textContent = `업데이트: ${new Date().toLocaleString('ko-KR')}  (${ok}/${FRED_SERIES.length} 지표)`;
-    updEl.style.color = ok < FRED_SERIES.length ? 'var(--amber)' : '';
+    updEl.textContent = `업데이트: ${new Date().toLocaleString('ko-KR')}  (${ok}/12 지표)`;
+    updEl.style.color = ok < 8 ? 'var(--amber)' : '';
   }
   renderSigCards();
   renderFredInds();
