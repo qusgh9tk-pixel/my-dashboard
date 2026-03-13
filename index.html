@@ -1227,8 +1227,14 @@ const FRED_INDUSTRIES = [
 ];
 
 async function fetchFred(id) {
-  const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${id}&api_key=${FRED_KEY}&file_type=json&limit=90&sort_order=desc`;
-  const r = await fetch(url);
+  const fredUrl = `https://api.stlouisfed.org/fred/series/observations?series_id=${id}&api_key=${FRED_KEY}&file_type=json&limit=90&sort_order=desc`;
+  let r;
+  try {
+    r = await fetch(fredUrl);
+  } catch {
+    // 직접 접근 차단 시 CORS 프록시 경유
+    r = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(fredUrl)}`);
+  }
   const d = await r.json();
   if (d.error_message) throw new Error(d.error_message);
   if (!d.observations) throw new Error('no observations: ' + id);
