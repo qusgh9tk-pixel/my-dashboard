@@ -6,6 +6,7 @@
 <title>투자 대시보드</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Pretendard:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root {
   --bg: #0d0f14;
@@ -239,6 +240,52 @@ nav {
 /* LOADING ANIMATION */
 @keyframes shimmer { 0%{opacity:0.3} 50%{opacity:0.7} 100%{opacity:0.3} }
 .loading-text { animation: shimmer 1.2s infinite; }
+
+/* SIGNAL PAGE */
+.sig-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; }
+.sig-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; }
+.sig-card-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
+.sig-icon { font-size: 20px; margin-right: 10px; }
+.sig-name { font-size: 14px; font-weight: 600; }
+.sig-cos { font-size: 10px; color: var(--text3); margin-top: 2px; font-family: var(--mono); }
+.sig-badge { font-size: 10px; font-weight: 600; padding: 3px 9px; border-radius: 20px; white-space: nowrap; font-family: var(--mono); }
+.sbuy { background: var(--green2); color: var(--green); border: 1px solid rgba(0,201,141,0.3); }
+.sneu { background: rgba(240,165,0,0.12); color: var(--amber); border: 1px solid rgba(240,165,0,0.3); }
+.scau { background: var(--red2); color: var(--red); border: 1px solid rgba(255,95,109,0.3); }
+.sig-bar-wrap { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.sig-bar-bg { flex: 1; background: var(--bg3); border-radius: 4px; height: 4px; overflow: hidden; }
+.sig-bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+.sig-score-txt { font-family: var(--mono); font-size: 11px; font-weight: 600; }
+.sig-factors { display: flex; flex-direction: column; gap: 6px; }
+.sig-factor { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text3); }
+.sig-factor.on { color: var(--text2); }
+.fdot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+.fdot-on { background: var(--green); } .fdot-off { background: var(--text3); }
+
+.fred-key-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.fred-key-row input { font-size: 11px; font-family: var(--mono); padding: 6px 10px; border: 1px solid var(--border2); border-radius: 6px; background: var(--bg3); color: var(--text); width: 220px; outline: none; }
+.fred-key-row input:focus { border-color: var(--blue); }
+.btn-load { font-size: 11px; padding: 6px 14px; border-radius: 6px; background: var(--blue2); color: var(--blue); border: 1px solid var(--blue); cursor: pointer; transition: all 0.15s; }
+.btn-load:hover { background: var(--blue); color: #fff; }
+.btn-excel { font-size: 11px; padding: 6px 14px; border-radius: 6px; background: var(--green2); color: var(--green); border: 1px solid var(--green); cursor: pointer; transition: all 0.15s; }
+.btn-excel:hover { background: var(--green); color: #000; }
+.fred-updated { font-size: 10px; color: var(--text3); font-family: var(--mono); }
+
+.ind-grid4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+.ind-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+.ind-group-lbl { font-size: 9px; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 10px; }
+.ind-row { margin-bottom: 10px; }
+.ind-row:last-child { margin-bottom: 0; }
+.ind-lbl { font-size: 10px; color: var(--text2); margin-bottom: 2px; }
+.ind-val { font-size: 18px; font-weight: 600; font-family: var(--mono); }
+.ind-chg { font-size: 10px; font-family: var(--mono); margin-top: 1px; }
+.ind-dt { font-size: 9px; color: var(--text3); font-family: var(--mono); }
+
+.sig-chart-grid { display: grid; grid-template-columns: 300px 1fr; gap: 16px; }
+.sig-spinner { display: none; width: 18px; height: 18px; border: 2px solid var(--border2); border-top-color: var(--blue); border-radius: 50%; animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (max-width: 1100px) { .sig-grid { grid-template-columns: repeat(2,1fr); } }
+@media (max-width: 900px) { .sig-grid, .sig-chart-grid { grid-template-columns: 1fr; } .ind-grid4 { grid-template-columns: repeat(2,1fr); } }
 </style>
 </head>
 <body>
@@ -272,6 +319,11 @@ nav {
       <button class="nav-item" onclick="goPage('macro')">
         <svg class="nav-icon" fill="none" viewBox="0 0 16 16"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M5 8h6M5 6h2M9 10h2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
         경제 지표
+      </button>
+      <div class="nav-label">Korea</div>
+      <button class="nav-item" onclick="goPage('signal')">
+        <svg class="nav-icon" fill="none" viewBox="0 0 16 16"><path d="M2 11l3-5 2.5 2.5L10 5l4 5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="13" cy="4" r="1.5" fill="currentColor" opacity="0.7"/></svg>
+        투자 신호
       </button>
       <div class="nav-label">Portfolio</div>
       <button class="nav-item" onclick="goPage('stock')">
@@ -500,6 +552,51 @@ nav {
         </div>
       </div>
 
+      <!-- SIGNAL PAGE -->
+      <div id="p-signal" class="page">
+
+        <!-- FRED 키 + 불러오기 -->
+        <div class="card" style="padding:16px 20px">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+            <div style="font-size:12px;font-weight:500;color:var(--text2)">🇰🇷 한국 산업별 투자 신호 — FRED API</div>
+            <div class="fred-key-row">
+              <span class="sig-spinner" id="fred-spinner"></span>
+              <span class="fred-updated" id="fred-updated">—</span>
+              <input id="fred-key" type="password" placeholder="FRED API 키" autocomplete="off">
+              <button class="btn-load" onclick="loadFredAll()">불러오기</button>
+              <button class="btn-excel" onclick="exportSignalExcel()">📥 엑셀</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 신호 카드 -->
+        <div class="sig-grid" id="sig-grid">
+          <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text3);font-size:13px">
+            FRED API 키를 입력하고 <strong style="color:var(--text2)">불러오기</strong>를 클릭하세요
+          </div>
+        </div>
+
+        <!-- FRED 지표 -->
+        <div class="ind-grid4" id="fred-ind-grid"></div>
+
+        <!-- 차트 -->
+        <div class="sig-chart-grid">
+          <div class="card">
+            <div class="card-title" style="font-size:12px;font-weight:500;color:var(--text2);margin-bottom:14px">산업별 신호 강도</div>
+            <div class="ch" style="height:260px"><canvas id="sig-radar-ch"></canvas></div>
+          </div>
+          <div class="card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+              <span class="card-title" style="font-size:12px;font-weight:500;color:var(--text2)">지표 추이 (60일)</span>
+              <div style="display:flex;gap:6px;flex-wrap:wrap" id="fred-trend-pills"></div>
+            </div>
+            <div class="ch" style="height:220px"><canvas id="fred-trend-ch"></canvas></div>
+            <div class="card-src">출처: <a href="https://fred.stlouisfed.org" target="_blank">FRED (Federal Reserve Economic Data)</a></div>
+          </div>
+        </div>
+
+      </div>
+
     </div><!-- .content -->
   </main>
 </div>
@@ -540,7 +637,7 @@ function goPage(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('p-' + id).classList.add('active');
-  document.querySelectorAll('.nav-item')[['fx','index','macro','stock','port'].indexOf(id)].classList.add('active');
+  document.querySelectorAll('.nav-item')[['fx','index','macro','stock','signal','port'].indexOf(id)].classList.add('active');
   if (id === 'fx') { loadFxSpot(); loadFxHist(); }
   if (id === 'index') { setTimeout(() => { drawIdx('SP500', 4900); drawFear(); drawSectors(); drawVIX(); drawVKOSPI(); }, 50); }
   if (id === 'macro') { setTimeout(() => { drawYield(); drawComm(); }, 50); }
@@ -1043,6 +1140,322 @@ function drawLineChart(id, labels, vals, label, color) {
       }
     }
   });
+}
+
+// ── FRED / SIGNAL ─────────────────────────────────────
+let FRED_KEY = localStorage.getItem('fred_key') || '';
+let fredData = {};
+let fredTrendSeries = 'DGS10';
+
+if (FRED_KEY) document.getElementById('fred-key').value = FRED_KEY;
+
+const FRED_SERIES = [
+  { id:'DEXKOUS',          label:'KRW/USD',       group:'환율',  fmt: v=>`${v.toFixed(2)} ₩`, upGood:false },
+  { id:'DEXCHUS',          label:'CNY/USD',       group:'환율',  fmt: v=>v.toFixed(4),         upGood:false },
+  { id:'DEXJPUS',          label:'JPY/USD',       group:'환율',  fmt: v=>v.toFixed(2),         upGood:false },
+  { id:'DEXUSEU',          label:'USD/EUR',       group:'환율',  fmt: v=>v.toFixed(4),         upGood:true  },
+  { id:'FEDFUNDS',         label:'Fed 기준금리',  group:'금리',  fmt: v=>`${v.toFixed(2)}%`,   upGood:null  },
+  { id:'DGS2',             label:'미국 2Y',       group:'금리',  fmt: v=>`${v.toFixed(3)}%`,   upGood:null  },
+  { id:'DGS10',            label:'미국 10Y',      group:'금리',  fmt: v=>`${v.toFixed(3)}%`,   upGood:null  },
+  { id:'T10Y2Y',           label:'10Y-2Y 스프레드',group:'금리', fmt: v=>`${v.toFixed(3)}%`,  upGood:true  },
+  { id:'DCOILWTICO',       label:'WTI 원유',      group:'원자재',fmt: v=>`$${v.toFixed(2)}`,   upGood:null  },
+  { id:'DCOILBRENTEU',     label:'Brent 원유',    group:'원자재',fmt: v=>`$${v.toFixed(2)}`,   upGood:null  },
+  { id:'GOLDAMGBD228NLBM', label:'금 (Gold)',     group:'원자재',fmt: v=>`$${v.toFixed(0)}`,   upGood:null  },
+  { id:'INDPRO',           label:'산업생산지수',  group:'경기',  fmt: v=>v.toFixed(2),         upGood:true  },
+  { id:'UMCSENT',          label:'소비자심리',    group:'경기',  fmt: v=>v.toFixed(1),         upGood:true  },
+  { id:'UNRATE',           label:'실업률',        group:'경기',  fmt: v=>`${v.toFixed(1)}%`,   upGood:false },
+  { id:'CPIAUCSL',         label:'CPI',           group:'경기',  fmt: v=>v.toFixed(3),         upGood:false },
+];
+
+const FRED_INDUSTRIES = [
+  { id:'semiconductor', name:'반도체', icon:'💾', color:'#4a9eff',
+    companies:'삼성전자 · SK하이닉스 · 한미반도체',
+    signals:[
+      { label:'KRW 약세 → 수출 환차익',          check: d => d.DEXKOUS > 1300 },
+      { label:'소비자 심리 양호 (IT 수요)',        check: d => d.UMCSENT > 72 },
+      { label:'산업생산 증가 (부품 수요)',          check: d => d.INDPRO_CHG > 0 },
+      { label:'금리 하락 추세 (성장주 유리)',       check: d => d.DGS10_CHG < 0 },
+      { label:'수익률 곡선 정상화 (경기침체 X)',    check: d => d.T10Y2Y > -1.5 },
+    ]},
+  { id:'automotive', name:'자동차', icon:'🚗', color:'#00c98d',
+    companies:'현대차 · 기아 · 현대모비스',
+    signals:[
+      { label:'KRW 약세 → 수출 환차익',           check: d => d.DEXKOUS > 1300 },
+      { label:'유가 안정 → 소비 여력 증가',         check: d => d.DCOILWTICO < 90 },
+      { label:'소비자 심리 양호 (구매력)',           check: d => d.UMCSENT > 72 },
+      { label:'낮은 실업률 (고용 안정)',             check: d => d.UNRATE < 4.5 },
+      { label:'금리 동결·인하 (할부 부담 ↓)',       check: d => d.FEDFUNDS_CHG <= 0 },
+    ]},
+  { id:'shipbuilding', name:'조선', icon:'🚢', color:'#f0a500',
+    companies:'HD현대 · 한화오션 · 삼성중공업',
+    signals:[
+      { label:'고유가 → 탱커·LNG선 발주 ↑',       check: d => d.DCOILWTICO > 75 },
+      { label:'KRW 약세 → 달러 계약 유리',          check: d => d.DEXKOUS > 1300 },
+      { label:'산업생산 증가 → 해운 수요 ↑',        check: d => d.INDPRO_CHG > 0 },
+      { label:'교역 심리 양호 (물동량 ↑)',           check: d => d.UMCSENT > 65 },
+      { label:'위안 약세 → 중국 조선 경쟁력 ↓',    check: d => d.DEXCHUS > 7.1 },
+    ]},
+  { id:'battery', name:'배터리', icon:'🔋', color:'#9b7cff',
+    companies:'LG에너지솔루션 · 삼성SDI · SK온',
+    signals:[
+      { label:'고유가 → EV 전환 가속화',            check: d => d.DCOILWTICO > 75 },
+      { label:'금리 하락 → 성장주 밸류 ↑',          check: d => d.DGS10_CHG < 0 },
+      { label:'인플레 안정 → 보조금 정책 유지',     check: d => d.CPIAUCSL_CHG < 0.3 },
+      { label:'KRW 약세 → 수출 유리',               check: d => d.DEXKOUS > 1280 },
+      { label:'수익률 곡선 극단적 역전 X',           check: d => d.T10Y2Y > -2 },
+    ]},
+  { id:'steel', name:'철강', icon:'⚙️', color:'#ff5f6d',
+    companies:'POSCO홀딩스 · 현대제철 · 동국제강',
+    signals:[
+      { label:'산업생산 증가 → 철강 수요 ↑',        check: d => d.INDPRO_CHG > 0 },
+      { label:'KRW 약세 → 수출 유리',               check: d => d.DEXKOUS > 1300 },
+      { label:'유가 적정 → 에너지 원가 부담 ↓',     check: d => d.DCOILWTICO < 90 },
+      { label:'소비자 심리 (건설·제조 수요)',         check: d => d.UMCSENT > 68 },
+      { label:'위안 약세 → 중국 철강 수출 ↓',       check: d => d.DEXCHUS > 7.0 },
+    ]},
+  { id:'finance', name:'금융', icon:'🏦', color:'#00d9c0',
+    companies:'KB금융 · 신한금융 · 하나금융',
+    signals:[
+      { label:'장단기 스프레드 (+) → NIM 개선',     check: d => d.T10Y2Y > 0 },
+      { label:'스프레드 확대 추세',                   check: d => d.T10Y2Y_CHG > 0 },
+      { label:'낮은 실업률 → 부실채권 ↓',            check: d => d.UNRATE < 4.5 },
+      { label:'금리 동결·인하 → 주가 재평가',        check: d => d.FEDFUNDS_CHG <= 0 },
+      { label:'KRW 과도한 약세 X → 외국인 유입',    check: d => d.DEXKOUS < 1430 },
+    ]},
+];
+
+async function fetchFred(id) {
+  const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${id}&api_key=${FRED_KEY}&file_type=json&limit=90&sort_order=desc`;
+  const r = await fetch(url);
+  const d = await r.json();
+  if (!d.observations) throw new Error(id);
+  const obs = d.observations.filter(o => o.value !== '.' && o.value !== '');
+  const cur = parseFloat(obs[0]?.value);
+  const prev20 = parseFloat(obs[Math.min(19, obs.length-1)]?.value);
+  return {
+    cur, prev1: parseFloat(obs[1]?.value),
+    chg20: cur - prev20, pct20: ((cur-prev20)/prev20)*100,
+    date: obs[0]?.date,
+    history: obs.slice(0,60).reverse().map(o=>({date:o.date, val:parseFloat(o.value)}))
+  };
+}
+
+async function loadFredAll() {
+  FRED_KEY = document.getElementById('fred-key').value.trim();
+  if (!FRED_KEY) { alert('FRED API 키를 입력해주세요'); return; }
+  localStorage.setItem('fred_key', FRED_KEY);
+
+  const spinner = document.getElementById('fred-spinner');
+  spinner.style.display = 'inline-block';
+  fredData = {};
+
+  for (const s of FRED_SERIES) {
+    try { fredData[s.id] = await fetchFred(s.id); }
+    catch(e) { fredData[s.id] = null; }
+  }
+
+  spinner.style.display = 'none';
+  document.getElementById('fred-updated').textContent = '업데이트: ' + new Date().toLocaleString('ko-KR');
+  renderSigCards();
+  renderFredInds();
+  renderSigRadar();
+  renderFredTrendPills();
+  renderFredTrend(fredTrendSeries);
+}
+
+function getSigData() {
+  const g = id => fredData[id]?.cur ?? null;
+  const c = id => fredData[id]?.chg20 ?? 0;
+  return {
+    DEXKOUS: g('DEXKOUS'), DEXCHUS: g('DEXCHUS'),
+    FEDFUNDS: g('FEDFUNDS'), FEDFUNDS_CHG: c('FEDFUNDS'),
+    DGS10: g('DGS10'), DGS10_CHG: c('DGS10'),
+    T10Y2Y: g('T10Y2Y'), T10Y2Y_CHG: c('T10Y2Y'),
+    DCOILWTICO: g('DCOILWTICO'), UMCSENT: g('UMCSENT'),
+    UNRATE: g('UNRATE'), INDPRO_CHG: c('INDPRO'),
+    CPIAUCSL_CHG: fredData['CPIAUCSL'] ? (fredData['CPIAUCSL'].chg20 / (fredData['CPIAUCSL'].cur - fredData['CPIAUCSL'].chg20)) * 100 : 0,
+  };
+}
+
+function sigBadge(score, total) {
+  const p = score/total;
+  if (p >= 0.7) return { cls:'sbuy', txt:'매수 신호 ▲' };
+  if (p >= 0.4) return { cls:'sneu', txt:'중립 ─' };
+  return             { cls:'scau', txt:'주의 ▼' };
+}
+function sigColor(score, total) {
+  const p = score/total;
+  return p >= 0.7 ? 'var(--green)' : p >= 0.4 ? 'var(--amber)' : 'var(--red)';
+}
+
+function renderSigCards() {
+  const sd = getSigData();
+  const grid = document.getElementById('sig-grid');
+  grid.innerHTML = '';
+  FRED_INDUSTRIES.forEach(ind => {
+    const res = ind.signals.map(s => s.check(sd));
+    const score = res.filter(Boolean).length;
+    const total = ind.signals.length;
+    const { cls, txt } = sigBadge(score, total);
+    const color = sigColor(score, total);
+    const div = document.createElement('div');
+    div.className = 'sig-card';
+    div.innerHTML = `
+      <div class="sig-card-top">
+        <div style="display:flex;align-items:center">
+          <span class="sig-icon">${ind.icon}</span>
+          <div><div class="sig-name">${ind.name}</div><div class="sig-cos">${ind.companies}</div></div>
+        </div>
+        <span class="sig-badge ${cls}">${txt}</span>
+      </div>
+      <div class="sig-bar-wrap">
+        <div class="sig-bar-bg"><div class="sig-bar-fill" style="width:${(score/total)*100}%;background:${color}"></div></div>
+        <span class="sig-score-txt" style="color:${color}">${score}/${total}</span>
+      </div>
+      <div class="sig-factors">
+        ${ind.signals.map((s,i)=>`
+          <div class="sig-factor ${res[i]?'on':''}">
+            <span class="fdot ${res[i]?'fdot-on':'fdot-off'}"></span>${s.label}
+          </div>`).join('')}
+      </div>`;
+    grid.appendChild(div);
+  });
+}
+
+function renderFredInds() {
+  const grid = document.getElementById('fred-ind-grid');
+  grid.innerHTML = '';
+  const groups = {};
+  FRED_SERIES.forEach(s => { if(!groups[s.group]) groups[s.group]=[]; groups[s.group].push(s); });
+  Object.entries(groups).forEach(([grp, slist]) => {
+    const card = document.createElement('div');
+    card.className = 'ind-card';
+    card.innerHTML = `<div class="ind-group-lbl">${grp}</div>` + slist.map(s => {
+      const d = fredData[s.id];
+      if (!d) return `<div class="ind-row"><div class="ind-lbl">${s.label}</div><div class="ind-val" style="font-size:14px;color:var(--text3)">—</div></div>`;
+      const up = d.chg20 > 0;
+      const cls = s.upGood === null ? '' : (up === s.upGood ? 'up' : 'dn');
+      return `<div class="ind-row">
+        <div class="ind-lbl">${s.label}</div>
+        <div class="ind-val" style="font-size:17px">${s.fmt(d.cur)}</div>
+        <div class="ind-chg ${cls}">${up?'+':''}${d.chg20.toFixed(3)} (1M)</div>
+        <div class="ind-dt">${d.date}</div>
+      </div>`;
+    }).join('');
+    grid.appendChild(card);
+  });
+}
+
+function renderSigRadar() {
+  const sd = getSigData();
+  const c = document.getElementById('sig-radar-ch');
+  if (charts['sig-radar']) charts['sig-radar'].destroy();
+  charts['sig-radar'] = new Chart(c, {
+    type: 'radar',
+    data: {
+      labels: FRED_INDUSTRIES.map(i=>i.name),
+      datasets: [{
+        data: FRED_INDUSTRIES.map(ind => {
+          const res = ind.signals.map(s=>s.check(sd));
+          return (res.filter(Boolean).length / ind.signals.length) * 100;
+        }),
+        backgroundColor: 'rgba(74,158,255,0.1)', borderColor:'#4a9eff', borderWidth:2,
+        pointBackgroundColor: FRED_INDUSTRIES.map(i=>i.color), pointRadius:5
+      }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      scales:{ r:{ min:0, max:100, ticks:{display:false}, grid:{color:'rgba(255,255,255,0.06)'}, angleLines:{color:'rgba(255,255,255,0.06)'}, pointLabels:{color:'#7a7f8e',font:{size:11}} } },
+      plugins:{ legend:{display:false}, tooltip:{callbacks:{label:ctx=>` ${ctx.raw.toFixed(0)}%`}} }
+    }
+  });
+}
+
+const FRED_TREND_OPTS = [
+  { id:'DGS10', label:'미국10Y', color:'#4a9eff' },
+  { id:'T10Y2Y', label:'장단기', color:'#f0a500' },
+  { id:'DEXKOUS', label:'KRW/USD', color:'#00c98d' },
+  { id:'DCOILWTICO', label:'WTI', color:'#ff5f6d' },
+  { id:'UMCSENT', label:'소비심리', color:'#9b7cff' },
+];
+
+function renderFredTrendPills() {
+  const bar = document.getElementById('fred-trend-pills');
+  bar.innerHTML = FRED_TREND_OPTS.map(o => `
+    <button onclick="renderFredTrend('${o.id}')"
+      style="font-size:10px;padding:3px 9px;border-radius:20px;cursor:pointer;font-family:var(--mono);
+      border:1px solid ${fredTrendSeries===o.id?o.color:'var(--border2)'};
+      background:${fredTrendSeries===o.id?o.color+'22':'transparent'};
+      color:${fredTrendSeries===o.id?o.color:'var(--text3)'};transition:all 0.15s">
+      ${o.label}
+    </button>`).join('');
+}
+
+function renderFredTrend(id) {
+  fredTrendSeries = id;
+  renderFredTrendPills();
+  const d = fredData[id];
+  if (!d) return;
+  const opt = FRED_TREND_OPTS.find(o=>o.id===id);
+  const c = document.getElementById('fred-trend-ch');
+  if (charts['fred-trend']) charts['fred-trend'].destroy();
+  charts['fred-trend'] = new Chart(c, {
+    type:'line',
+    data:{ labels:d.history.map(h=>h.date.slice(5)), datasets:[{ data:d.history.map(h=>h.val), label:opt?.label||id, borderColor:opt?.color||'#4a9eff', backgroundColor:(opt?.color||'#4a9eff')+'14', fill:true, tension:0.3, pointRadius:0, borderWidth:2 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.raw}`}}}, scales:{ x:{ticks:{maxTicksLimit:8,font:{size:10},color:'#454a58'},grid:{display:false}}, y:{ticks:{font:{size:10},color:'#454a58'},grid:{color:'rgba(255,255,255,0.04)'}} } }
+  });
+}
+
+function exportSignalExcel() {
+  if (!Object.keys(fredData).length) { alert('먼저 데이터를 불러오세요'); return; }
+  const wb = XLSX.utils.book_new();
+  const sd = getSigData();
+
+  // Sheet1: 투자신호 요약
+  const s1 = [['산업','종목','신호','점수','총점','달성률','요인1','요인2','요인3','요인4','요인5']];
+  FRED_INDUSTRIES.forEach(ind => {
+    const res = ind.signals.map(s=>s.check(sd));
+    const score = res.filter(Boolean).length;
+    const { txt } = sigBadge(score, ind.signals.length);
+    s1.push([ind.name, ind.companies, txt.replace(/[▲▼─]/g,'').trim(), score, ind.signals.length, `${Math.round(score/ind.signals.length*100)}%`, ...res.map(r=>r?'✓':'✗')]);
+  });
+  const ws1 = XLSX.utils.aoa_to_sheet(s1);
+  ws1['!cols'] = [{wch:10},{wch:32},{wch:10},{wch:6},{wch:6},{wch:8},...Array(5).fill({wch:6})];
+  XLSX.utils.book_append_sheet(wb, ws1, '투자신호_요약');
+
+  // Sheet2: 신호 요인 상세
+  const s2 = [['산업','신호 조건','충족']];
+  FRED_INDUSTRIES.forEach(ind => {
+    ind.signals.forEach((sig,i)=>{ s2.push([ind.name, sig.label, sig.check(sd)?'✓':'✗']); });
+    s2.push([]);
+  });
+  const ws2 = XLSX.utils.aoa_to_sheet(s2);
+  ws2['!cols'] = [{wch:10},{wch:38},{wch:8}];
+  XLSX.utils.book_append_sheet(wb, ws2, '신호_요인상세');
+
+  // Sheet3: FRED 지표
+  const s3 = [['지표','분류','현재값','전일대비','1개월대비','1개월변화율','기준일']];
+  FRED_SERIES.forEach(s => {
+    const d = fredData[s.id];
+    if (!d) { s3.push([s.label,s.group,'N/A','N/A','N/A','N/A','N/A']); return; }
+    s3.push([s.label, s.group, d.cur.toFixed(4), (d.cur-d.prev1).toFixed(4), d.chg20.toFixed(4), d.pct20.toFixed(2)+'%', d.date]);
+  });
+  const ws3 = XLSX.utils.aoa_to_sheet(s3);
+  ws3['!cols'] = [{wch:18},{wch:10},{wch:14},{wch:12},{wch:12},{wch:14},{wch:14}];
+  XLSX.utils.book_append_sheet(wb, ws3, 'FRED_지표현황');
+
+  // Sheet4: 추이 데이터
+  const tids = ['DGS10','T10Y2Y','DEXKOUS','DCOILWTICO','UMCSENT'];
+  const maxL = Math.max(...tids.map(id=>fredData[id]?.history?.length||0));
+  const s4 = [['날짜',...tids.map(id=>FRED_SERIES.find(s=>s.id===id)?.label||id)]];
+  for(let i=0;i<maxL;i++){
+    s4.push([fredData[tids[0]]?.history?.[i]?.date||'',...tids.map(id=>fredData[id]?.history?.[i]?.val??'')]);
+  }
+  const ws4 = XLSX.utils.aoa_to_sheet(s4);
+  ws4['!cols'] = [{wch:14},...tids.map(()=>({wch:14}))];
+  XLSX.utils.book_append_sheet(wb, ws4, '지표_추이');
+
+  XLSX.writeFile(wb, `한국투자신호_${new Date().toISOString().slice(0,10)}.xlsx`);
 }
 
 // ── STARTUP ───────────────────────────────────────────
