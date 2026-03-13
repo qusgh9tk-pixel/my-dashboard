@@ -1261,19 +1261,19 @@ async function loadFredAll() {
   updEl.style.color = '';
   fredData = {};
 
+  // 15개 동시 요청 (병렬)
+  const results = await Promise.allSettled(FRED_SERIES.map(s => fetchFred(s.id)));
   let ok = 0, firstErr = '';
-  for (const s of FRED_SERIES) {
-    try {
-      fredData[s.id] = await fetchFred(s.id);
-      if (fredData[s.id]) ok++;
-    } catch(e) {
+  results.forEach((res, i) => {
+    const s = FRED_SERIES[i];
+    if (res.status === 'fulfilled' && res.value) {
+      fredData[s.id] = res.value; ok++;
+    } else {
       fredData[s.id] = null;
-      if (!firstErr) firstErr = e.message;
-      console.warn('[FRED]', s.id, e.message);
+      if (!firstErr) firstErr = res.reason?.message || '';
+      console.warn('[FRED]', s.id, res.reason?.message);
     }
-    updEl.textContent = `불러오는 중... (${ok + Object.values(fredData).filter(v=>v===null).length}/${FRED_SERIES.length})`;
-    await new Promise(r => setTimeout(r, 300)); // 프록시 속도 제한 방지
-  }
+  });
 
   spinner.style.display = 'none';
   if (ok === 0) {
