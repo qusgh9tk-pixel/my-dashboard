@@ -717,37 +717,34 @@ async function drawVKOSPI() {
   const ov = document.getElementById('vkospi-ov');
   const srcEl = document.getElementById('vkospi-src');
   ov.style.display = 'flex'; ov.textContent = '불러오는 중...';
-  const YF_URL = 'https://query2.finance.yahoo.com/v8/finance/chart/%5EVKOSPI?interval=1d&range=3mo';
-  const endpoints = [
-    'https://corsproxy.io/?' + YF_URL,
-    'https://api.allorigins.win/raw?url=' + encodeURIComponent(YF_URL),
-    YF_URL,
-  ];
-  for (const url of endpoints) {
-    try {
-      const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
-      if (!r.ok) continue;
-      const d = await r.json();
-      const result = d?.chart?.result?.[0];
-      if (!result?.timestamp?.length) continue;
-      const closes = result.indicators.quote[0].close;
-      const filtered = result.timestamp
-        .map((t, i) => {
-          const dt = new Date(t * 1000);
-          return { l: `${String(dt.getMonth()+1).padStart(2,'0')}/${String(dt.getDate()).padStart(2,'0')}`, v: closes[i] };
-        })
-        .filter(x => x.v != null);
-      if (filtered.length < 5) continue;
-      drawVolLineChart('vkospi-ch', filtered.map(x => x.l), filtered.map(x => +x.v.toFixed(2)), 'VKOSPI', '#9b7cff');
-      ov.style.display = 'none';
-      if (srcEl) srcEl.innerHTML = '출처: <a href="https://kr.investing.com/indices/kospi-volatility" target="_blank">VKOSPI</a> via <a href="https://finance.yahoo.com/quote/%5EVKOSPI" target="_blank">Yahoo Finance</a> · 실제 데이터';
-      return;
-    } catch (e) { continue; }
-  }
+
+  // 1) Stooq CSV (CORS 허용)
+  try {
+    const today = new Date(), past = new Date(); past.setDate(today.getDate() - 90);
+    const fmt = d => d.toISOString().slice(0,10).replace(/-/g,'');
+    const r = await fetch(`https://stooq.com/q/d/l/?s=vkospi&i=d&d1=${fmt(past)}&d2=${fmt(today)}`);
+    if (r.ok) {
+      const text = await r.text();
+      const rows = text.trim().split('\n').slice(1).filter(Boolean);
+      const data = rows.map(row => {
+        const cols = row.split(',');
+        const dt = new Date(cols[0]);
+        return { l: `${String(dt.getMonth()+1).padStart(2,'0')}/${String(dt.getDate()).padStart(2,'0')}`, v: parseFloat(cols[4]) };
+      }).filter(x => !isNaN(x.v));
+      if (data.length >= 5) {
+        drawVolLineChart('vkospi-ch', data.map(x => x.l), data.map(x => +x.v.toFixed(2)), 'VKOSPI', '#9b7cff');
+        ov.style.display = 'none';
+        if (srcEl) srcEl.innerHTML = '출처: <a href="https://kr.investing.com/indices/kospi-volatility" target="_blank">VKOSPI</a> via <a href="https://stooq.com/q/?s=vkospi" target="_blank">Stooq</a> · 실제 데이터';
+        return;
+      }
+    }
+  } catch (e) {}
+
+  // 2) Simulation fallback
   const { labels, vals } = genVol(18);
   drawVolLineChart('vkospi-ch', labels, vals, 'VKOSPI', '#9b7cff');
   ov.style.display = 'none';
-  if (srcEl) srcEl.innerHTML = '출처: 시뮬레이션 데이터 (Yahoo Finance 연결 실패)';
+  if (srcEl) srcEl.innerHTML = '출처: 시뮬레이션 데이터 (실시간 API 연결 불가)';
 }
 
 function drawVolLineChart(id, labels, vals, label, color) {
