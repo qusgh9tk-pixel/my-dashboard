@@ -271,21 +271,22 @@ nav {
 .btn-excel:hover { background: var(--green); color: #000; }
 .fred-updated { font-size: 10px; color: var(--text3); font-family: var(--mono); }
 
-.ind-grid4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+.ind-grid4 { display: grid; grid-template-columns: repeat(5,1fr); gap: 10px; }
 .ind-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
-.ind-group-lbl { font-size: 9px; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 10px; }
-.ind-row { margin-bottom: 10px; }
-.ind-row:last-child { margin-bottom: 0; }
-.ind-lbl { font-size: 10px; color: var(--text2); margin-bottom: 2px; }
-.ind-val { font-size: 18px; font-weight: 600; font-family: var(--mono); }
-.ind-chg { font-size: 10px; font-family: var(--mono); margin-top: 1px; }
-.ind-dt { font-size: 9px; color: var(--text3); font-family: var(--mono); }
+.ind-group-lbl { font-size: 9px; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 6px; }
+.ind-lbl { font-size: 10px; color: var(--text2); margin-bottom: 4px; }
+.ind-val { font-size: 18px; font-weight: 600; font-family: var(--mono); line-height: 1; }
+.ind-chg { font-size: 10px; font-family: var(--mono); margin-top: 3px; }
+.ind-dt { font-size: 9px; color: var(--text3); font-family: var(--mono); margin-top: 1px; }
+.sparkline-wrap { height: 52px; margin-top: 8px; }
 
 .sig-chart-grid { display: grid; grid-template-columns: 300px 1fr; gap: 16px; }
 .sig-spinner { display: none; width: 18px; height: 18px; border: 2px solid var(--border2); border-top-color: var(--blue); border-radius: 50%; animation: spin 0.7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+@media (max-width: 1200px) { .ind-grid4 { grid-template-columns: repeat(4,1fr); } }
 @media (max-width: 1100px) { .sig-grid { grid-template-columns: repeat(2,1fr); } }
-@media (max-width: 900px) { .sig-grid, .sig-chart-grid { grid-template-columns: 1fr; } .ind-grid4 { grid-template-columns: repeat(2,1fr); } }
+@media (max-width: 900px) { .sig-grid, .sig-chart-grid { grid-template-columns: 1fr; } .ind-grid4 { grid-template-columns: repeat(3,1fr); } }
+@media (max-width: 600px) { .ind-grid4 { grid-template-columns: repeat(2,1fr); } }
 </style>
 </head>
 <body>
@@ -1325,24 +1326,51 @@ function renderSigCards() {
 function renderFredInds() {
   const grid = document.getElementById('fred-ind-grid');
   grid.innerHTML = '';
-  const groups = {};
-  FRED_SERIES.forEach(s => { if(!groups[s.group]) groups[s.group]=[]; groups[s.group].push(s); });
-  Object.entries(groups).forEach(([grp, slist]) => {
+  // destroy existing sparklines
+  FRED_SERIES.forEach(s => { const k='sp-'+s.id; if(charts[k]){charts[k].destroy();delete charts[k];} });
+
+  FRED_SERIES.forEach(s => {
+    const d = fredData[s.id];
     const card = document.createElement('div');
     card.className = 'ind-card';
-    card.innerHTML = `<div class="ind-group-lbl">${grp}</div>` + slist.map(s => {
-      const d = fredData[s.id];
-      if (!d) return `<div class="ind-row"><div class="ind-lbl">${s.label}</div><div class="ind-val" style="font-size:14px;color:var(--text3)">—</div></div>`;
-      const up = d.chg20 > 0;
-      const cls = s.upGood === null ? '' : (up === s.upGood ? 'up' : 'dn');
-      return `<div class="ind-row">
-        <div class="ind-lbl">${s.label}</div>
-        <div class="ind-val" style="font-size:17px">${s.fmt(d.cur)}</div>
-        <div class="ind-chg ${cls}">${up?'+':''}${d.chg20.toFixed(3)} (1M)</div>
-        <div class="ind-dt">${d.date}</div>
-      </div>`;
-    }).join('');
+
+    if (!d) {
+      card.innerHTML = `<div class="ind-group-lbl">${s.group}</div><div class="ind-lbl">${s.label}</div><div class="ind-val" style="font-size:14px;color:var(--text3)">—</div>`;
+      grid.appendChild(card);
+      return;
+    }
+
+    const up = d.chg20 > 0;
+    const chgCls = s.upGood === null ? 'nu' : (up === s.upGood ? 'up' : 'dn');
+    const sparkColor = d.cur >= d.history[0]?.val ? '#00c98d' : '#ff5f6d';
+    const canvasId = 'sp-' + s.id;
+
+    card.innerHTML = `
+      <div class="ind-group-lbl">${s.group}</div>
+      <div class="ind-lbl">${s.label}</div>
+      <div class="ind-val">${s.fmt(d.cur)}</div>
+      <div class="ind-chg ${chgCls}">${up?'+':''}${d.chg20.toFixed(3)} <span style="color:var(--text3)">(1M)</span></div>
+      <div class="ind-dt">${d.date}</div>
+      <div class="sparkline-wrap"><canvas id="${canvasId}"></canvas></div>`;
     grid.appendChild(card);
+
+    // draw sparkline after appended to DOM
+    requestAnimationFrame(() => {
+      const c = document.getElementById(canvasId);
+      if (!c) return;
+      const vals = d.history.map(h => h.val);
+      const labels = d.history.map(h => h.date.slice(5));
+      if (charts['sp-'+s.id]) charts['sp-'+s.id].destroy();
+      charts['sp-'+s.id] = new Chart(c, {
+        type: 'line',
+        data: { labels, datasets: [{ data: vals, borderColor: sparkColor, backgroundColor: sparkColor+'1a', fill: true, tension: 0.3, pointRadius: 0, borderWidth: 1.5 }] },
+        options: {
+          responsive: true, maintainAspectRatio: false, animation: false,
+          plugins: { legend:{display:false}, tooltip:{enabled:false} },
+          scales: { x:{display:false}, y:{display:false} }
+        }
+      });
+    });
   });
 }
 
