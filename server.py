@@ -129,10 +129,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 if __name__ == "__main__":
     os.chdir(SERVE_DIR)
     with http.server.HTTPServer(("", PORT), Handler) as srv:
-        print(f"✅  대시보드 서버 → http://localhost:{PORT}")
-        print(f"   실전투자 프록시: /api/kis/*    → openapi.koreainvestment.com:{KIS_PORT}")
-        print(f"   모의투자 프록시: /api/kisvts/* → openapivts.koreainvestment.com:{KIS_PORT}")
-        print("   종료: Ctrl+C\n")
+        print(f"[OK] Dashboard server -> http://localhost:{PORT}")
+        print(f"     /api/kis/*    -> openapi.koreainvestment.com:{KIS_PORT}")
+        print(f"     /api/kisvts/* -> openapivts.koreainvestment.com:{KIS_PORT}")
+        print("     Ctrl+C to stop\n")
         try:
             srv.serve_forever()
         except KeyboardInterrupt:
